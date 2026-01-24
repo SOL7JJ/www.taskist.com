@@ -8,14 +8,26 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+
 
 // IMPORTANT: change this in real projects (use env var)
 const JWT_SECRET = process.env.JWT_SECRET || "dev-fallback";
 
 
-app.use(cors({ origin: "http://localhost:5173" }));
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.CLIENT_URL, // your deployed frontend URL will go here
+].filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
+
 app.use(express.json());
+
+app.get("/", (req, res) => res.send("API running ✅"));
 
 // ---- SQLite setup ----
 const __filename = fileURLToPath(import.meta.url);
