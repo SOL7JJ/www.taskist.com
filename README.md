@@ -93,4 +93,4 @@ Author
 James Jonathan Elie Tossou-Ayayi
 Junior Full-Stack Software Engineer
 GitHub: https://github.com/SOL7JJ
-LinkedIn: (add link)
+LinkedIn:https://www.linkedin.com/in/james-jonathan-elie-303219366/
