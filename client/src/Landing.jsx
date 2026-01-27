@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import "./landing.css";
+import "./Landing.css";
 
 export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
