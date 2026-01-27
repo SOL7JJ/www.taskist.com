@@ -1,42 +1,74 @@
-/* =========================
-   GLOBAL PAGE LAYOUT
-   ========================= */
-html,
-body,
-#root {
-  height: 100%;
-  margin: 0px;
-  
-
+/* Page wrapper for the task app (same site background) */
+.task-page {
+  min-height: 100vh;
+  padding: 48px 0;
 }
 
-body {
-  background: linear-gradient(135deg, #f8fafc 0%, #dbeafe 100%);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  padding: 16px;        /* was 300px */
-  box-sizing: border-box;
+.task-container {
+  width: min(92vw, 980px);
+  margin: 0 auto;
 }
 
-
-/* =========================
-   APP CONTAINER
-   ========================= */
+/* Card-like shell that feels like the landing components */
 .wrap {
-  width: min(92vw, 880px);  /* fits phone */
-  max-height: 90vh;         /* fits screen */
-  overflow: auto;           /* scroll inside if long */
+  width: 100%;
+  max-height: calc(100vh - 96px);
+  overflow: auto;
   background: white;
   border-radius: 18px;
-  padding: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    color: #111827;
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  color: #111827;
+  border: 1px solid var(--border);
 }
 
+/* Shared “brand” buttons similar to landing */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(226, 71, 58, 0.25);
+}
+
+.btn-primary:hover {
+  background: var(--primary-strong);
+}
+
+.btn-soft {
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border);
+  color: #222;
+}
+
+.btn-soft:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.btn-danger {
+  background: transparent;
+  border: 1px solid rgba(226, 71, 58, 0.35);
+  color: var(--primary-strong);
+}
+
+.btn-danger:hover {
+  background: rgba(226, 71, 58, 0.08);
+}
 
 /* =========================
    TOP BAR
@@ -45,27 +77,27 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .topbar h1 {
-  margin: 10px;
-  font-size: clamp(22px, 5vw, 40px);
-  line-height: 1.2;
-    color: #111827;
+  margin: 0;
+  font-size: clamp(20px, 3vw, 28px);
+  letter-spacing: -0.02em;
 }
-
-
 
 /* =========================
    FORMS
    ========================= */
 .row {
   display: flex;
-  gap: 50px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 12px;
   align-items: center;
-  flex-wrap: wrap; /* important for new fields */
+  flex-wrap: wrap;
 }
 
 .col {
@@ -75,11 +107,18 @@ body {
 
 input,
 select {
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #ddd;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
   font-size: 14px;
   background: #fff;
+  outline: none;
+}
+
+input:focus,
+select:focus {
+  border-color: rgba(226, 71, 58, 0.35);
+  box-shadow: 0 0 0 4px rgba(226, 71, 58, 0.12);
 }
 
 input[type="date"] {
@@ -90,25 +129,15 @@ select {
   cursor: pointer;
 }
 
-button {
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  background: #fafafa;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #f0f0f0;
-}
-
 /* =========================
    AUTH CARD
    ========================= */
 .card {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-soft);
 }
 
 .tabs {
@@ -118,15 +147,17 @@ button:hover {
 }
 
 .tab {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   background: transparent;
-  border-radius: 10px;
+  border-radius: 999px;
   padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .tab.active {
-  font-weight: bold;
-  background: #f0f0f0;
+  background: rgba(226, 71, 58, 0.12);
+  border-color: rgba(226, 71, 58, 0.25);
 }
 
 /* =========================
@@ -135,7 +166,9 @@ button:hover {
 .list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 14px 0 0;
+  display: grid;
+  gap: 10px;
 }
 
 .item {
@@ -144,17 +177,17 @@ button:hover {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .left {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   flex: 1;
-  min-width: 200px;
+  min-width: 220px;
 }
 
 .done {
@@ -176,24 +209,19 @@ button:hover {
   flex-shrink: 0;
 }
 
-.ghost {
-  background: transparent;
-}
-
-.danger {
-  background: transparent;
-  border-color: #f2b8b8;
-}
-
 /* =========================
    MESSAGES
    ========================= */
 .error {
-  color: crimson;
-  margin-bottom: 10px;
+  color: var(--primary-strong);
+  background: rgba(226, 71, 58, 0.08);
+  border: 1px solid rgba(226, 71, 58, 0.18);
+  padding: 10px 12px;
+  border-radius: 12px;
+  margin: 10px 0 12px;
 }
 
 .hint {
-  opacity: 0.7;
+  color: var(--muted);
   margin-top: 10px;
 }
