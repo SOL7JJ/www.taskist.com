@@ -36,8 +36,21 @@ body,
   margin: 0;
 }
 
+
+
+
 body {
-  background: var(--bg);
+  background: radial-gradient(
+      circle at top left,
+      rgba(226, 71, 58, 0.08),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(226, 71, 58, 0.06),
+      transparent 40%
+    ),
+    #f9fafb;
 }
 
 a {

@@ -14,7 +14,9 @@
   width: 100%;
   max-height: calc(100vh - 96px);
   overflow: auto;
-  background: white;
+  background: rgba(255, 255, 255, 0.75);
+backdrop-filter: blur(14px);
+-webkit-backdrop-filter: blur(14px);
   border-radius: 18px;
   padding: 18px;
   box-shadow: var(--shadow-soft);
@@ -111,7 +113,9 @@ select {
   border-radius: 12px;
   border: 1px solid var(--border);
   font-size: 14px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.85);
+backdrop-filter: blur(6px);
+
   outline: none;
 }
 
@@ -179,8 +183,20 @@ select {
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.7);
+backdrop-filter: blur(8px);
+transition: transform 0.15s ease, box-shadow 0.15s ease;
+
 }
+
+.item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+
+
+
 
 .left {
   display: flex;
