@@ -11,19 +11,34 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 
+
 // IMPORTANT: change this in real projects (use env var)
 const JWT_SECRET = process.env.JWT_SECRET || "dev-fallback";
 
 
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.CLIENT_URL, // your deployed frontend URL will go here
+  "https://yourtaskist.com",
+  "https://www.yourtaskist.com",
+  process.env.CLIENT_URL,
 ].filter(Boolean);
 
+
+
 app.use(cors({
-  origin: allowedOrigins,
+  origin(origin, cb) {
+    // allow requests with no origin (curl, mobile apps, server-to-server)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
+
+// ✅ IMPORTANT: respond to preflight requests
+app.options("*", cors());
 
 app.use(express.json());
 
