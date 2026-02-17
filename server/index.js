@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
-import { DatabaseSync } from "node:sqlite";
+import Database from "better-sqlite3";
+
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -9,7 +10,6 @@ import bcrypt from "bcryptjs";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-
 
 
 // IMPORTANT: change this in real projects (use env var)
@@ -38,7 +38,7 @@ app.use(cors({
 }));
 
 // ✅ IMPORTANT: respond to preflight requests
-app.options("*", cors());
+
 
 app.use(express.json());
 
@@ -55,7 +55,7 @@ const dbPath = process.env.SQLITE_PATH || path.join(dataDir, "tasks.db");
 const db = new DatabaseSync(dbPath);
 
 // ---- Tables ----
-db.exec(`
+new Database(dbPath).exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL UNIQUE,
@@ -64,7 +64,7 @@ db.exec(`
   );
 `);
 
-db.exec(`
+new Database(dbPath).exec(`
   CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     owner_id INTEGER NOT NULL,
@@ -76,8 +76,8 @@ db.exec(`
 `);
 
 // If you had an older tasks table without these columns, try to add safely:
-try { db.exec(`ALTER TABLE tasks ADD COLUMN completed INTEGER NOT NULL DEFAULT 0;`); } catch {}
-try { db.exec(`ALTER TABLE tasks ADD COLUMN owner_id INTEGER NOT NULL DEFAULT 0;`); } catch {}
+try { new Database(dbPath).exec(`ALTER TABLE tasks ADD COLUMN completed INTEGER NOT NULL DEFAULT 0;`); } catch {}
+try { new Database(dbPath).exec(`ALTER TABLE tasks ADD COLUMN owner_id INTEGER NOT NULL DEFAULT 0;`); } catch {}
 
 // ---- Auth helpers ----
 function createToken(user) {
@@ -100,34 +100,34 @@ function requireAuth(req, res, next) {
 
 // ---- Prepared statements ----
 // Users
-const stmtFindUserByEmail = db.prepare(`SELECT id, email, password_hash FROM users WHERE email = ?;`);
-const stmtCreateUser = db.prepare(`INSERT INTO users (email, password_hash) VALUES (?, ?);`);
+const stmtFindUserByEmail = new Database(dbPath).prepare(`SELECT id, email, password_hash FROM users WHERE email = ?;`);
+const stmtCreateUser = new Database(dbPath).prepare(`INSERT INTO users (email, password_hash) VALUES (?, ?);`);
 
 // Tasks (scoped to owner)
-const stmtGetAllTasksForUser = db.prepare(`
+const stmtGetAllTasksForUser = new Database(dbPath).prepare(`
   SELECT id, title, completed
   FROM tasks
   WHERE owner_id = ?
   ORDER BY id DESC;
 `);
 
-const stmtInsertTask = db.prepare(`
+const stmtInsertTask = new Database(dbPath).prepare(`
   INSERT INTO tasks (owner_id, title, completed)
   VALUES (?, ?, 0);
 `);
 
-const stmtDeleteTask = db.prepare(`
+const stmtDeleteTask = new Database(dbPath).prepare(`
   DELETE FROM tasks
   WHERE id = ? AND owner_id = ?;
 `);
 
-const stmtUpdateTitle = db.prepare(`
+const stmtUpdateTitle = new Database(dbPath).prepare(`
   UPDATE tasks
   SET title = ?
   WHERE id = ? AND owner_id = ?;
 `);
 
-const stmtUpdateCompleted = db.prepare(`
+const stmtUpdateCompleted = new Database(dbPath).prepare(`
   UPDATE tasks
   SET completed = ?
   WHERE id = ? AND owner_id = ?;
