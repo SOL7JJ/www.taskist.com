@@ -288,9 +288,7 @@ export default function TaskApp() {
                   </button>
                 </div>
 
-                <p className="hint">
-                  API: <code>{API}</code>
-                </p>
+               
               </form>
             </div>
           ) : (
