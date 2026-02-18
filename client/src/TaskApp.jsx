@@ -4,6 +4,8 @@
 // - useMemo: compute derived values efficiently (filtered/sorted task list)
 import { useEffect, useMemo, useState } from "react";
 
+import { Link } from "react-router-dom";
+
 // Import CSS styling for this component/app UI
 import "./App.css";
 
@@ -307,8 +309,8 @@ export default function TaskApp() {
     // Update the task in UI state (without reloading all tasks)
     setTasks((prev) =>
       prev.map((t) =>
-        t.id === task.id ? { ...t, completed: !t.completed } : t
-      )
+        t.id === task.id ? { ...t, completed: !t.completed } : t,
+      ),
     );
   }
 
@@ -361,7 +363,7 @@ export default function TaskApp() {
 
     // Update task title locally in state
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, title: trimmed } : t))
+      prev.map((t) => (t.id === taskId ? { ...t, title: trimmed } : t)),
     );
 
     // Exit edit mode
@@ -378,40 +380,42 @@ export default function TaskApp() {
     // Convert priority into numeric rank for sorting
     const priorityRank = { high: 3, medium: 2, low: 1 };
 
-    return (tasks ?? [])
-      // Filter tasks by status (or show all)
-      .filter((t) => {
-        // Support different task shapes by using fallback status
-        const s = t.status ?? "todo";
-        return filterStatus === "all" ? true : s === filterStatus;
-      })
-      // Sort tasks based on selected option
-      .sort((a, b) => {
-        // Sort by priority high->low
-        if (sortBy === "priority") {
-          const ap = priorityRank[a.priority ?? "medium"] ?? 2;
-          const bp = priorityRank[b.priority ?? "medium"] ?? 2;
-          return bp - ap;
-        }
+    return (
+      (tasks ?? [])
+        // Filter tasks by status (or show all)
+        .filter((t) => {
+          // Support different task shapes by using fallback status
+          const s = t.status ?? "todo";
+          return filterStatus === "all" ? true : s === filterStatus;
+        })
+        // Sort tasks based on selected option
+        .sort((a, b) => {
+          // Sort by priority high->low
+          if (sortBy === "priority") {
+            const ap = priorityRank[a.priority ?? "medium"] ?? 2;
+            const bp = priorityRank[b.priority ?? "medium"] ?? 2;
+            return bp - ap;
+          }
 
-        // Sort by due date (earlier first)
-        if (sortBy === "due_date") {
-          // Try both camelCase and snake_case field names
-          const ad = a.dueDate ?? a.due_date ?? "";
-          const bd = b.dueDate ?? b.due_date ?? "";
+          // Sort by due date (earlier first)
+          if (sortBy === "due_date") {
+            // Try both camelCase and snake_case field names
+            const ad = a.dueDate ?? a.due_date ?? "";
+            const bd = b.dueDate ?? b.due_date ?? "";
 
-          // Handle empty due dates so ones with a date appear first
-          if (!ad && !bd) return 0;
-          if (!ad) return 1;
-          if (!bd) return -1;
+            // Handle empty due dates so ones with a date appear first
+            if (!ad && !bd) return 0;
+            if (!ad) return 1;
+            if (!bd) return -1;
 
-          // Compare ISO date strings (YYYY-MM-DD) lexicographically
-          return ad.localeCompare(bd);
-        }
+            // Compare ISO date strings (YYYY-MM-DD) lexicographically
+            return ad.localeCompare(bd);
+          }
 
-        // Default sort: newest first by id (assuming higher id means newer)
-        return (b.id ?? 0) - (a.id ?? 0);
-      });
+          // Default sort: newest first by id (assuming higher id means newer)
+          return (b.id ?? 0) - (a.id ?? 0);
+        })
+    );
   }, [tasks, filterStatus, sortBy]);
 
   // ----------------------------
@@ -425,18 +429,33 @@ export default function TaskApp() {
         <div className="wrap">
           {/* TOP BAR */}
           <div className="topbar">
-            <h1>TaskApp</h1>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <Link to="/" style={{ textDecoration: "none", fontSize: 14 }}>
+                ← Back to Home
+              </Link>
+              <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
+                <h1 style={{ margin: 0 }}>TaskApp</h1>
+              </Link>
+            </div>
 
             {/* Only show Refresh/Logout if logged in */}
             {isAuthed ? (
               <div className="actions">
                 {/* Refresh manually reloads tasks from backend */}
-                <button className="btn btn-soft" type="button" onClick={loadTasks}>
+                <button
+                  className="btn btn-soft"
+                  type="button"
+                  onClick={loadTasks}
+                >
                   Refresh
                 </button>
 
                 {/* Logout clears token and returns to login UI */}
-                <button className="btn btn-danger" type="button" onClick={logout}>
+                <button
+                  className="btn btn-danger"
+                  type="button"
+                  onClick={logout}
+                >
                   Logout
                 </button>
               </div>
@@ -528,7 +547,10 @@ export default function TaskApp() {
                     </select>
 
                     {/* Status dropdown */}
-                    <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                    >
                       <option value="todo">todo</option>
                       <option value="in_progress">in_progress</option>
                       <option value="done">done</option>
@@ -561,7 +583,10 @@ export default function TaskApp() {
                     </select>
 
                     {/* Sort tasks */}
-                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                    >
                       <option value="newest">newest</option>
                       <option value="priority">priority</option>
                       <option value="due_date">due_date</option>
