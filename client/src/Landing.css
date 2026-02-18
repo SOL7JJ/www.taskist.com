@@ -8,7 +8,6 @@
   position: sticky;
   top: 0;
   background: rgba(251, 250, 248, 0.86);
-  backdrop-filter: blur(10px);
   border-bottom: 1px solid transparent;
   z-index: 50;
 }
@@ -89,7 +88,10 @@
   font-weight: 700;
   font-size: 14px;
   border: 1px solid transparent;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.12s ease;
   cursor: pointer;
 }
 
@@ -259,7 +261,11 @@
   width: 100%;
   max-width: 620px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, rgba(226, 71, 58, 0.10), rgba(226, 71, 58, 0.02));
+  background: linear-gradient(
+    180deg,
+    rgba(226, 71, 58, 0.1),
+    rgba(226, 71, 58, 0.02)
+  );
   border: 1px solid rgba(226, 71, 58, 0.18);
   box-shadow: var(--shadow);
   padding: 18px;
@@ -270,7 +276,11 @@
   position: absolute;
   inset: -40% -20% auto -20%;
   height: 260px;
-  background: radial-gradient(circle at 30% 60%, rgba(226, 71, 58, 0.22), transparent 60%);
+  background: radial-gradient(
+    circle at 30% 60%,
+    rgba(226, 71, 58, 0.22),
+    transparent 60%
+  );
   filter: blur(2px);
   pointer-events: none;
 }
@@ -331,9 +341,15 @@
   width: 78%;
 }
 
-.fake-nav-item:nth-child(2) { width: 58%; }
-.fake-nav-item:nth-child(3) { width: 66%; }
-.fake-nav-item:nth-child(4) { width: 62%; }
+.fake-nav-item:nth-child(2) {
+  width: 58%;
+}
+.fake-nav-item:nth-child(3) {
+  width: 66%;
+}
+.fake-nav-item:nth-child(4) {
+  width: 62%;
+}
 
 .fake-nav-item.active {
   background: rgba(226, 71, 58, 0.22);
@@ -557,7 +573,11 @@
   max-width: 420px;
   height: 260px;
   border-radius: 24px;
-  background: linear-gradient(135deg, rgba(226, 71, 58, 0.15), rgba(226, 71, 58, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(226, 71, 58, 0.15),
+    rgba(226, 71, 58, 0.05)
+  );
   display: grid;
   place-items: center;
   font-weight: 700;
@@ -566,7 +586,11 @@
 
 /* CTA */
 .cta {
-  background: linear-gradient(180deg, rgba(226, 71, 58, 0.08), rgba(226, 71, 58, 0.02));
+  background: linear-gradient(
+    180deg,
+    rgba(226, 71, 58, 0.08),
+    rgba(226, 71, 58, 0.02)
+  );
 }
 
 .cta-box {
