@@ -1,699 +1,593 @@
-// Import React hooks:
-// - useState: store component state (token, form fields, tasks, filters, etc.)
-// - useEffect: run side effects (e.g., load tasks when token changes)
-// - useMemo: compute derived values efficiently (filtered/sorted task list)
 import { useEffect, useMemo, useState } from "react";
-
 import { Link } from "react-router-dom";
-
-// Import CSS styling for this component/app UI
 import "./App.css";
 
-// Base URL for your backend API.
-// - In production (Render), VITE_API_URL comes from Render Environment Variables on the frontend service.
-// - Locally, it falls back to http://localhost:3001
 const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
-// This is the main TaskApp component
 export default function TaskApp() {
-  // ----------------------------
-  // AUTH STATE
-  // ----------------------------
-
-  // token stores the JWT token used for authenticated requests.
-  // We initialize it from localStorage so the user stays logged in after refresh.
   const [token, setToken] = useState(localStorage.getItem("token") || "");
-
-  // mode decides which auth screen we are on: "login" or "register"
-  const [mode, setMode] = useState("login"); // "login" | "register"
-
-  // Controlled inputs for email + password fields
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // ----------------------------
-  // TASK CREATION / TASK DATA STATE
-  // ----------------------------
-
-  // tasks array holds all tasks loaded from the backend for the logged-in user
   const [tasks, setTasks] = useState([]);
-
-  // Controlled input for the "Task title..." field
   const [title, setTitle] = useState("");
-
-  // These states represent extra task metadata selected in the form.
-  // NOTE: Your backend *must support these fields* (priority/status/dueDate),
-  // otherwise they won't be stored or returned. (Your current server code earlier
-  // only stores title/completed/owner_id unless you add columns.)
   const [priority, setPriority] = useState("medium");
   const [status, setStatus] = useState("todo");
   const [dueDate, setDueDate] = useState("");
-
-  // ----------------------------
-  // FILTER / SORT UI STATE
-  // ----------------------------
-
-  // filterStatus controls which tasks appear (all/todo/in_progress/done)
   const [filterStatus, setFilterStatus] = useState("all");
-
-  // sortBy controls ordering (newest/priority/due_date)
   const [sortBy, setSortBy] = useState("newest");
-
-  // ----------------------------
-  // EDITING STATE
-  // ----------------------------
-
-  // editingId holds the task id currently being edited (or null if none)
   const [editingId, setEditingId] = useState(null);
-
-  // editingTitle holds the temporary edited text for the selected task
   const [editingTitle, setEditingTitle] = useState("");
-
-  // ----------------------------
-  // ERROR STATE
-  // ----------------------------
-
-  // error is a string used to display API errors in the UI
   const [error, setError] = useState("");
 
-  // isAuthed is true if token exists (truthy)
-  // Used to switch UI between "auth screen" and "task screen"
   const isAuthed = !!token;
 
-  // ----------------------------
-  // HELPERS
-  // ----------------------------
-
-  // Build the Authorization header for protected routes
-  // Format required by your backend: "Authorization: Bearer <token>"
   function authHeaders() {
     return { Authorization: `Bearer ${token}` };
   }
 
-  // ----------------------------
-  // API: LOAD TASKS
-  // ----------------------------
-
-  // Fetch tasks for the current user (requires token)
   async function loadTasks() {
-    // If no token, don't request tasks (user not logged in)
     if (!token) return;
 
-    // Clear any previous error
     setError("");
 
-    // Make GET request to backend endpoint
     const res = await fetch(`${API}/api/tasks`, {
-      headers: authHeaders(), // include Bearer token
+      headers: authHeaders(),
     });
-
-    // Parse JSON response (your backend always returns JSON)
     const data = await res.json();
 
-    // If request failed, show error message and stop
     if (!res.ok) {
       setError(data.error || "Failed to load tasks");
       return;
     }
 
-    // If successful, store tasks in state (triggers UI re-render)
     setTasks(data);
   }
 
-  // ----------------------------
-  // SIDE EFFECT: AUTO-LOAD TASKS WHEN TOKEN CHANGES
-  // ----------------------------
-
   useEffect(() => {
-    // Whenever token changes (login/logout), load tasks again
-    loadTasks();
+    if (!token) return;
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // This comment disables lint warnings because loadTasks is declared inside
-    // the component and would normally be added as a dependency.
-    // Here, you're intentionally only re-running when token changes.
+    async function syncTasks() {
+      setError("");
+
+      const res = await fetch(`${API}/api/tasks`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to load tasks");
+        return;
+      }
+
+      setTasks(data);
+    }
+
+    void syncTasks();
   }, [token]);
 
-  // ----------------------------
-  // API: LOGIN / REGISTER
-  // ----------------------------
-
   async function submitAuth(e) {
-    // Prevent the page from refreshing when form is submitted
     e.preventDefault();
-
-    // Clear old errors
     setError("");
 
-    // Decide endpoint based on current mode:
-    // - register -> /api/auth/register
-    // - login -> /api/auth/login
     const endpoint = mode === "register" ? "register" : "login";
-
-    // Send POST request with email/password
     const res = await fetch(`${API}/api/auth/${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-
-    // Parse JSON response
     const data = await res.json();
 
-    // If auth fails (wrong password, email exists, etc.)
     if (!res.ok) {
       setError(data.error || "Auth failed");
       return;
     }
 
-    // Extract JWT token from response
-    const t = data.token;
-
-    // Save token into localStorage (persists across refresh)
-    localStorage.setItem("token", t);
-
-    // Save token into React state (immediately updates UI to authed state)
-    setToken(t);
-
-    // Clear form fields after success
+    localStorage.setItem("token", data.token);
+    setToken(data.token);
     setEmail("");
     setPassword("");
   }
 
-  // ----------------------------
-  // LOGOUT
-  // ----------------------------
-
   function logout() {
-    // Remove token from localStorage
     localStorage.removeItem("token");
-
-    // Clear token from state (this will switch UI back to login screen)
     setToken("");
-
-    // Clear tasks from memory
     setTasks([]);
-
-    // Clear edit mode state
     setEditingId(null);
     setEditingTitle("");
-
-    // Clear any error messages
     setError("");
   }
 
-  // ----------------------------
-  // API: ADD TASK
-  // ----------------------------
-
   async function addTask(e) {
-    // Prevent form submit refresh
     e.preventDefault();
-
-    // Trim input title to remove extra spaces
     const trimmed = title.trim();
-
-    // Simple validation: require at least 2 characters
     if (trimmed.length < 2) return;
 
-    // Clear errors before request
     setError("");
 
-    // Send POST request to create new task
     const res = await fetch(`${API}/api/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({
-        // Task title
         title: trimmed,
-
-        // Extra fields included in request body (priority/status/dueDate)
-        // IMPORTANT: backend must support these, or they will be ignored.
         priority,
         status,
-        dueDate: dueDate || null, // send null if empty
+        dueDate: dueDate || null,
       }),
     });
-
-    // Parse response JSON
     const data = await res.json();
 
-    // If create failed, show error
     if (!res.ok) {
       setError(data.error || "Failed to add task");
       return;
     }
 
-    // Update UI immediately by adding new task at the top of the list
-    // This avoids having to reload all tasks
     setTasks((prev) => [data, ...prev]);
-
-    // Reset form fields to defaults
     setTitle("");
     setPriority("medium");
     setStatus("todo");
     setDueDate("");
   }
 
-  // ----------------------------
-  // API: DELETE TASK
-  // ----------------------------
-
   async function deleteTask(id) {
-    // Clear errors
     setError("");
 
-    // Send DELETE request for that task
     const res = await fetch(`${API}/api/tasks/${id}`, {
       method: "DELETE",
-      headers: authHeaders(), // Bearer token required
+      headers: authHeaders(),
     });
-
-    // Parse JSON response
     const data = await res.json();
 
-    // If delete failed
     if (!res.ok) {
       setError(data.error || "Failed to delete task");
       return;
     }
 
-    // Remove deleted task from UI state
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setTasks((prev) => prev.filter((task) => task.id !== id));
   }
 
-  // ----------------------------
-  // API: TOGGLE COMPLETED
-  // ----------------------------
-
   async function toggleCompleted(task) {
-    // Clear errors
     setError("");
 
-    // Send PUT request with new completed status
     const res = await fetch(`${API}/api/tasks/${task.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ completed: !task.completed }),
     });
-
-    // Parse JSON response
     const data = await res.json();
 
-    // If update failed
     if (!res.ok) {
       setError(data.error || "Failed to update task");
       return;
     }
 
-    // Update the task in UI state (without reloading all tasks)
     setTasks((prev) =>
-      prev.map((t) =>
-        t.id === task.id ? { ...t, completed: !t.completed } : t,
+      prev.map((item) =>
+        item.id === task.id ? { ...item, completed: !item.completed } : item,
       ),
     );
   }
 
-  // ----------------------------
-  // EDIT MODE HELPERS
-  // ----------------------------
-
-  // Start editing: set which task is being edited and load its title into input
   function startEdit(task) {
     setEditingId(task.id);
     setEditingTitle(task.title);
   }
 
-  // Cancel editing: reset edit state
   function cancelEdit() {
     setEditingId(null);
     setEditingTitle("");
   }
 
-  // ----------------------------
-  // API: SAVE EDITED TITLE
-  // ----------------------------
-
   async function saveEdit(taskId) {
-    // Validate edited title
     const trimmed = editingTitle.trim();
     if (trimmed.length < 2) {
       setError("Title must be at least 2 characters.");
       return;
     }
 
-    // Clear errors
     setError("");
 
-    // Send PUT request to update title
     const res = await fetch(`${API}/api/tasks/${taskId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ title: trimmed }),
     });
-
-    // Parse JSON
     const data = await res.json();
 
-    // If update failed
     if (!res.ok) {
       setError(data.error || "Failed to update title");
       return;
     }
 
-    // Update task title locally in state
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, title: trimmed } : t)),
+      prev.map((task) => (task.id === taskId ? { ...task, title: trimmed } : task)),
     );
-
-    // Exit edit mode
     cancelEdit();
   }
 
-  // ----------------------------
-  // DERIVED DATA: FILTERED + SORTED TASKS
-  // ----------------------------
-
-  // useMemo recalculates visibleTasks only when tasks/filterStatus/sortBy change.
-  // This prevents unnecessary filtering/sorting on every render.
   const visibleTasks = useMemo(() => {
-    // Convert priority into numeric rank for sorting
     const priorityRank = { high: 3, medium: 2, low: 1 };
 
-    return (
-      (tasks ?? [])
-        // Filter tasks by status (or show all)
-        .filter((t) => {
-          // Support different task shapes by using fallback status
-          const s = t.status ?? "todo";
-          return filterStatus === "all" ? true : s === filterStatus;
-        })
-        // Sort tasks based on selected option
-        .sort((a, b) => {
-          // Sort by priority high->low
-          if (sortBy === "priority") {
-            const ap = priorityRank[a.priority ?? "medium"] ?? 2;
-            const bp = priorityRank[b.priority ?? "medium"] ?? 2;
-            return bp - ap;
-          }
+    return (tasks ?? [])
+      .filter((task) => {
+        const taskStatus = task.status ?? "todo";
+        return filterStatus === "all" ? true : taskStatus === filterStatus;
+      })
+      .sort((a, b) => {
+        if (sortBy === "priority") {
+          const aPriority = priorityRank[a.priority ?? "medium"] ?? 2;
+          const bPriority = priorityRank[b.priority ?? "medium"] ?? 2;
+          return bPriority - aPriority;
+        }
 
-          // Sort by due date (earlier first)
-          if (sortBy === "due_date") {
-            // Try both camelCase and snake_case field names
-            const ad = a.dueDate ?? a.due_date ?? "";
-            const bd = b.dueDate ?? b.due_date ?? "";
+        if (sortBy === "due_date") {
+          const aDue = a.dueDate ?? a.due_date ?? "";
+          const bDue = b.dueDate ?? b.due_date ?? "";
+          if (!aDue && !bDue) return 0;
+          if (!aDue) return 1;
+          if (!bDue) return -1;
+          return aDue.localeCompare(bDue);
+        }
 
-            // Handle empty due dates so ones with a date appear first
-            if (!ad && !bd) return 0;
-            if (!ad) return 1;
-            if (!bd) return -1;
-
-            // Compare ISO date strings (YYYY-MM-DD) lexicographically
-            return ad.localeCompare(bd);
-          }
-
-          // Default sort: newest first by id (assuming higher id means newer)
-          return (b.id ?? 0) - (a.id ?? 0);
-        })
-    );
+        return (b.id ?? 0) - (a.id ?? 0);
+      });
   }, [tasks, filterStatus, sortBy]);
 
-  // ----------------------------
-  // UI RENDER
-  // ----------------------------
+  const stats = useMemo(() => {
+    const allTasks = tasks ?? [];
+    const completedCount = allTasks.filter((task) => task.completed).length;
+    const activeCount = allTasks.length - completedCount;
+    const dueSoonCount = allTasks.filter((task) => {
+      const due = task.dueDate ?? task.due_date;
+      if (!due) return false;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const dueDateValue = new Date(`${due}T00:00:00`);
+      const diffDays = Math.round((dueDateValue - today) / 86400000);
+      return diffDays >= 0 && diffDays <= 3;
+    }).length;
+
+    return {
+      total: allTasks.length,
+      completed: completedCount,
+      active: activeCount,
+      dueSoon: dueSoonCount,
+    };
+  }, [tasks]);
 
   return (
-    // Outer page wrapper
     <div className="task-page">
       <div className="task-container">
-        <div className="wrap">
-          {/* TOP BAR */}
-          <div className="topbar">
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <Link to="/" style={{ textDecoration: "none", fontSize: 14 }}>
-                ← Back to Home
+        <div className={`wrap ${isAuthed ? "is-dashboard" : "is-auth-shell"}`}>
+          <div className="app-shell-header">
+            <div>
+              <Link className="home-link" to="/">
+                ← Back to home
               </Link>
-              <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
-                <h1 style={{ margin: 0 }}>TaskApp</h1>
-              </Link>
+              <p className="eyebrow">Personal command center</p>
+              <h1>{isAuthed ? "Focus on what moves today." : "A calmer way to run your day."}</h1>
             </div>
 
-            {/* Only show Refresh/Logout if logged in */}
             {isAuthed ? (
               <div className="actions">
-                {/* Refresh manually reloads tasks from backend */}
-                <button
-                  className="btn btn-soft"
-                  type="button"
-                  onClick={loadTasks}
-                >
+                <button className="btn btn-soft" type="button" onClick={loadTasks}>
                   Refresh
                 </button>
-
-                {/* Logout clears token and returns to login UI */}
-                <button
-                  className="btn btn-danger"
-                  type="button"
-                  onClick={logout}
-                >
+                <button className="btn btn-danger" type="button" onClick={logout}>
                   Logout
                 </button>
               </div>
             ) : null}
           </div>
 
-          {/* ERROR BOX (only renders if error string exists) */}
           {error ? <div className="error">{error}</div> : null}
 
-          {/* AUTH VIEW: shown when not logged in */}
           {!isAuthed ? (
-            <div className="card">
-              {/* Tabs to switch between Login and Register mode */}
-              <div className="tabs">
-                <button
-                  type="button"
-                  className={`tab ${mode === "login" ? "active" : ""}`}
-                  onClick={() => setMode("login")}
-                >
-                  Login
-                </button>
-                <button
-                  type="button"
-                  className={`tab ${mode === "register" ? "active" : ""}`}
-                  onClick={() => setMode("register")}
-                >
-                  Register
-                </button>
+            <div className="auth-layout">
+              <div className="auth-copy">
+                <div className="auth-copy-card">
+                  <span className="auth-badge">Built for deliberate work</span>
+                  <h2>Plan less frantically. Execute more clearly.</h2>
+                  <p>
+                    Capture tasks, set real priorities, and keep due dates visible without
+                    drowning in clutter.
+                  </p>
+                  <div className="auth-points">
+                    <div>
+                      <strong>Priority aware</strong>
+                      <span>See what deserves attention first.</span>
+                    </div>
+                    <div>
+                      <strong>Fast updates</strong>
+                      <span>Edit, complete, and clean up in place.</span>
+                    </div>
+                    <div>
+                      <strong>Private by default</strong>
+                      <span>Your tasks stay scoped to your account.</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Auth form (submit triggers submitAuth) */}
-              <form className="col" onSubmit={submitAuth}>
-                {/* Email field */}
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  type="email"
-                  placeholder="Email"
-                  autoComplete="email"
-                  required
-                />
-
-                {/* Password field */}
-                <input
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  type="password"
-                  placeholder="Password (min 6 chars)"
-                  autoComplete={
-                    mode === "register" ? "new-password" : "current-password"
-                  }
-                  required
-                  minLength={6}
-                />
-
-                {/* Submit button changes label depending on mode */}
-                <div className="row">
-                  <button className="btn btn-primary" type="submit">
-                    {mode === "register" ? "Create account" : "Login"}
+              <div className="card auth-card">
+                <div className="tabs">
+                  <button
+                    type="button"
+                    className={`tab ${mode === "login" ? "active" : ""}`}
+                    onClick={() => setMode("login")}
+                  >
+                    Login
+                  </button>
+                  <button
+                    type="button"
+                    className={`tab ${mode === "register" ? "active" : ""}`}
+                    onClick={() => setMode("register")}
+                  >
+                    Register
                   </button>
                 </div>
 
-                {/* You removed the API label here (good for production UI) */}
-              </form>
-            </div>
-          ) : (
-            // TASK VIEW: shown when logged in
-            <>
-              {/* ADD TASK FORM */}
-              <div className="card">
-                <form className="col" onSubmit={addTask}>
+                <div className="auth-card-copy">
+                  <h3>{mode === "register" ? "Create your workspace" : "Welcome back"}</h3>
+                  <p>
+                    {mode === "register"
+                      ? "Start with a clean system for tasks, deadlines, and momentum."
+                      : "Pick up where you left off and keep the day under control."}
+                  </p>
+                </div>
+
+                <form className="col" onSubmit={submitAuth}>
+                  <label className="field">
+                    <span>Email</span>
+                    <input
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      type="email"
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                      required
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Password</span>
+                    <input
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      type="password"
+                      placeholder="Minimum 6 characters"
+                      autoComplete={mode === "register" ? "new-password" : "current-password"}
+                      required
+                      minLength={6}
+                    />
+                  </label>
+
                   <div className="row">
-                    {/* Task title input */}
-                    <input
-                      style={{ flex: 1, minWidth: 240 }}
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Task title..."
-                    />
-
-                    {/* Priority dropdown */}
-                    <select
-                      value={priority}
-                      onChange={(e) => setPriority(e.target.value)}
-                    >
-                      <option value="high">high</option>
-                      <option value="medium">medium</option>
-                      <option value="low">low</option>
-                    </select>
-
-                    {/* Status dropdown */}
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                    >
-                      <option value="todo">todo</option>
-                      <option value="in_progress">in_progress</option>
-                      <option value="done">done</option>
-                    </select>
-
-                    {/* Due date input */}
-                    <input
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                    />
-
-                    {/* Add task submit */}
-                    <button className="btn btn-primary" type="submit">
-                      Add
+                    <button className="btn btn-primary btn-wide" type="submit">
+                      {mode === "register" ? "Create account" : "Login"}
                     </button>
-                  </div>
-
-                  {/* FILTERS + SORT */}
-                  <div className="row">
-                    {/* Filter tasks by status */}
-                    <select
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                    >
-                      <option value="all">all</option>
-                      <option value="todo">todo</option>
-                      <option value="in_progress">in_progress</option>
-                      <option value="done">done</option>
-                    </select>
-
-                    {/* Sort tasks */}
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                    >
-                      <option value="newest">newest</option>
-                      <option value="priority">priority</option>
-                      <option value="due_date">due_date</option>
-                    </select>
                   </div>
                 </form>
               </div>
+            </div>
+          ) : (
+            <>
+              <section className="hero-panel">
+                <div className="hero-panel-copy">
+                  <span className="section-kicker">Today at a glance</span>
+                  <h2>{stats.active} active tasks, {stats.dueSoon} due soon.</h2>
+                  <p>
+                    Use the board below to capture new work, sort by urgency, and keep completed
+                    items from stealing attention.
+                  </p>
+                </div>
+                <div className="stats-grid">
+                  <div className="stat-card accent-coral">
+                    <span>Total</span>
+                    <strong>{stats.total}</strong>
+                  </div>
+                  <div className="stat-card accent-ink">
+                    <span>Active</span>
+                    <strong>{stats.active}</strong>
+                  </div>
+                  <div className="stat-card accent-gold">
+                    <span>Due soon</span>
+                    <strong>{stats.dueSoon}</strong>
+                  </div>
+                  <div className="stat-card accent-mint">
+                    <span>Completed</span>
+                    <strong>{stats.completed}</strong>
+                  </div>
+                </div>
+              </section>
 
-              {/* TASK LIST */}
-              <ul className="list">
-                {visibleTasks.map((t) => {
-                  // Safely read possible field names (camelCase vs snake_case)
-                  const due = t.dueDate ?? t.due_date ?? "";
-                  const s = t.status ?? "todo";
-                  const p = t.priority ?? "medium";
+              <section className="dashboard-grid">
+                <div className="card composer-card">
+                  <div className="card-heading">
+                    <div>
+                      <p className="card-kicker">Create</p>
+                      <h3>Add a focused task</h3>
+                    </div>
+                  </div>
 
-                  // Convert completed into true/false
-                  const completed = !!t.completed;
+                  <form className="col" onSubmit={addTask}>
+                    <label className="field">
+                      <span>Task title</span>
+                      <input
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Prepare client proposal"
+                      />
+                    </label>
 
-                  return (
-                    <li className="item" key={t.id}>
-                      <div className="left">
-                        {/* Checkbox toggles completed status */}
+                    <div className="control-grid">
+                      <label className="field">
+                        <span>Priority</span>
+                        <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+                          <option value="high">High</option>
+                          <option value="medium">Medium</option>
+                          <option value="low">Low</option>
+                        </select>
+                      </label>
+
+                      <label className="field">
+                        <span>Status</span>
+                        <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                          <option value="todo">To do</option>
+                          <option value="in_progress">In progress</option>
+                          <option value="done">Done</option>
+                        </select>
+                      </label>
+
+                      <label className="field">
+                        <span>Due date</span>
                         <input
-                          type="checkbox"
-                          checked={completed}
-                          onChange={() => toggleCompleted(t)}
-                          title="Toggle completed"
+                          type="date"
+                          value={dueDate}
+                          onChange={(e) => setDueDate(e.target.value)}
                         />
+                      </label>
+                    </div>
 
-                        {/* If this task is being edited, show input box */}
-                        {editingId === t.id ? (
+                    <div className="row">
+                      <button className="btn btn-primary btn-wide" type="submit">
+                        Add task
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <div className="card filter-card">
+                  <div className="card-heading">
+                    <div>
+                      <p className="card-kicker">View</p>
+                      <h3>Shape the list</h3>
+                    </div>
+                  </div>
+
+                  <div className="control-grid">
+                    <label className="field">
+                      <span>Status filter</span>
+                      <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+                        <option value="all">All</option>
+                        <option value="todo">To do</option>
+                        <option value="in_progress">In progress</option>
+                        <option value="done">Done</option>
+                      </select>
+                    </label>
+
+                    <label className="field">
+                      <span>Sort by</span>
+                      <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                        <option value="newest">Newest</option>
+                        <option value="priority">Priority</option>
+                        <option value="due_date">Due date</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              </section>
+
+              <section className="list-shell">
+                <div className="list-header">
+                  <div>
+                    <p className="card-kicker">Tasks</p>
+                    <h3>Your current queue</h3>
+                  </div>
+                  <span className="list-count">
+                    {visibleTasks.length} item{visibleTasks.length === 1 ? "" : "s"}
+                  </span>
+                </div>
+
+                <ul className="list">
+                  {visibleTasks.map((task) => {
+                    const due = task.dueDate ?? task.due_date ?? "";
+                    const taskStatus = task.status ?? "todo";
+                    const taskPriority = task.priority ?? "medium";
+                    const completed = !!task.completed;
+
+                    return (
+                      <li className={`item priority-${taskPriority}`} key={task.id}>
+                        <div className="left">
                           <input
-                            className="editInput"
-                            value={editingTitle}
-                            onChange={(e) => setEditingTitle(e.target.value)}
-                            onKeyDown={(e) => {
-                              // Enter saves
-                              if (e.key === "Enter") saveEdit(t.id);
-                              // Escape cancels
-                              if (e.key === "Escape") cancelEdit();
-                            }}
-                            autoFocus
+                            type="checkbox"
+                            checked={completed}
+                            onChange={() => toggleCompleted(task)}
+                            title="Toggle completed"
                           />
-                        ) : (
-                          // Otherwise show normal display
-                          <div>
-                            {/* Title (line-through if completed) */}
-                            <div className={completed ? "done" : ""}>
-                              <strong>{t.title}</strong>
-                            </div>
 
-                            {/* Small metadata line */}
-                            <div className="hint">
-                              {p} • {s}
-                              {due ? ` • due ${due}` : ""}
+                          {editingId === task.id ? (
+                            <input
+                              className="editInput"
+                              value={editingTitle}
+                              onChange={(e) => setEditingTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveEdit(task.id);
+                                if (e.key === "Escape") cancelEdit();
+                              }}
+                              autoFocus
+                            />
+                          ) : (
+                            <div className="task-copy">
+                              <div className={completed ? "done" : ""}>
+                                <strong>{task.title}</strong>
+                              </div>
+                              <div className="meta-row">
+                                <span className={`pill pill-${taskPriority}`}>{taskPriority}</span>
+                                <span className="pill pill-neutral">
+                                  {taskStatus.replace("_", " ")}
+                                </span>
+                                {due ? <span className="pill pill-neutral">due {due}</span> : null}
+                              </div>
+                              <div className="hint">
+                                {completed
+                                  ? "Completed task"
+                                  : taskStatus === "in_progress"
+                                    ? "In progress"
+                                    : "Ready to start"}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
 
-                      {/* ACTION BUTTONS (Edit/Save/Cancel/Delete) */}
-                      <div className="actions">
-                        {editingId === t.id ? (
-                          <>
-                            {/* Save edited title */}
+                        <div className="actions">
+                          {editingId === task.id ? (
+                            <>
+                              <button
+                                className="btn btn-soft"
+                                type="button"
+                                onClick={() => saveEdit(task.id)}
+                              >
+                                Save
+                              </button>
+                              <button className="btn btn-soft" type="button" onClick={cancelEdit}>
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
                             <button
                               className="btn btn-soft"
                               type="button"
-                              onClick={() => saveEdit(t.id)}
+                              onClick={() => startEdit(task)}
                             >
-                              Save
+                              Edit
                             </button>
+                          )}
 
-                            {/* Cancel editing */}
-                            <button
-                              className="btn btn-soft"
-                              type="button"
-                              onClick={cancelEdit}
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        ) : (
-                          // If not editing, show Edit button
                           <button
-                            className="btn btn-soft"
+                            className="btn btn-danger"
                             type="button"
-                            onClick={() => startEdit(t)}
+                            onClick={() => deleteTask(task.id)}
                           >
-                            Edit
+                            Delete
                           </button>
-                        )}
-
-                        {/* Delete the task */}
-                        <button
-                          className="btn btn-danger"
-                          type="button"
-                          onClick={() => deleteTask(t.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
             </>
           )}
         </div>
