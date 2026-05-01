@@ -9,18 +9,33 @@ const PORT = process.env.PORT || 3001;
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-fallback";
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://yourtaskist.com",
-  "https://www.yourtaskist.com",
-  process.env.CLIENT_URL,
-].filter(Boolean);
+const allowedOrigins = new Set(
+  [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://taskist.com",
+    "https://www.taskist.com",
+    process.env.CLIENT_URL,
+    process.env.PUBLIC_APP_URL,
+  ].filter(Boolean),
+);
+
+function isAllowedOrigin(origin) {
+  if (allowedOrigins.has(origin)) return true;
+
+  try {
+    const url = new URL(origin);
+    return url.protocol === "https:" && url.hostname.endsWith(".onrender.com");
+  } catch {
+    return false;
+  }
+}
 
 app.use(
   cors({
     origin(origin, cb) {
       if (!origin) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
+      if (isAllowedOrigin(origin)) return cb(null, true);
       return cb(new Error(`CORS blocked for origin: ${origin}`));
     },
     credentials: true,

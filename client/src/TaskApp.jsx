@@ -4,6 +4,17 @@ import "./App.css";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
+async function readResponse(res) {
+  const contentType = res.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return res.json();
+  }
+
+  const text = await res.text();
+  return { error: text || `Request failed with status ${res.status}` };
+}
+
 export default function TaskApp() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [mode, setMode] = useState("login");
@@ -34,7 +45,7 @@ export default function TaskApp() {
     const res = await fetch(`${API}/api/tasks`, {
       headers: authHeaders(),
     });
-    const data = await res.json();
+    const data = await readResponse(res);
 
     if (!res.ok) {
       setError(data.error || "Failed to load tasks");
@@ -53,7 +64,7 @@ export default function TaskApp() {
       const res = await fetch(`${API}/api/tasks`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      const data = await readResponse(res);
 
       if (!res.ok) {
         setError(data.error || "Failed to load tasks");
@@ -76,7 +87,7 @@ export default function TaskApp() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    const data = await res.json();
+    const data = await readResponse(res);
 
     if (!res.ok) {
       setError(data.error || "Auth failed");
@@ -115,7 +126,7 @@ export default function TaskApp() {
         dueDate: dueDate || null,
       }),
     });
-    const data = await res.json();
+    const data = await readResponse(res);
 
     if (!res.ok) {
       setError(data.error || "Failed to add task");
@@ -136,7 +147,7 @@ export default function TaskApp() {
       method: "DELETE",
       headers: authHeaders(),
     });
-    const data = await res.json();
+    const data = await readResponse(res);
 
     if (!res.ok) {
       setError(data.error || "Failed to delete task");
@@ -154,7 +165,7 @@ export default function TaskApp() {
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ completed: !task.completed }),
     });
-    const data = await res.json();
+    const data = await readResponse(res);
 
     if (!res.ok) {
       setError(data.error || "Failed to update task");
@@ -192,7 +203,7 @@ export default function TaskApp() {
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ title: trimmed }),
     });
-    const data = await res.json();
+    const data = await readResponse(res);
 
     if (!res.ok) {
       setError(data.error || "Failed to update title");
